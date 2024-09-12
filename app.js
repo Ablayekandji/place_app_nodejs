@@ -5,7 +5,7 @@ const app = express();
 
 // Endpoint pour rechercher des lieux
 app.get('/recherche', (req, res) => {
-    const nomRecherche = req.query.nom.toLowerCase();
+    const nomRecherche = req.query.name.toLowerCase();
     const resultats = [];
 
     fs.createReadStream('region_de_dakar_places.csv')
@@ -19,7 +19,7 @@ app.get('/recherche', (req, res) => {
             if (resultats.length > 0) {
                 res.json(resultats);
             } else {
-                res.json({ message: `Aucun lieu trouvé pour '${nomRecherche}'.` });
+                res.status(202).json({ message: `Aucun lieu trouvé pour '${nomRecherche}'.` });
             }
         })
         .on('error', (err) => {
