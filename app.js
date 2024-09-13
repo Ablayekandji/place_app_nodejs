@@ -8,11 +8,16 @@ app.get('/recherche', (req, res) => {
     const nomRecherche = req.query.name.toLowerCase();
     const resultats = [];
 
-    fs.createReadStream('region_de_dakar_places_v5_format.csv')
+    fs.createReadStream('places_format.csv')
         .pipe(csv())
         .on('data', (row) => {
             if (row.lieu.toLowerCase().startsWith(nomRecherche) || row.lieu.toLowerCase().includes(nomRecherche)) {
-                resultats.push(row);
+                const lieu = {
+                    lieu: row.lieu,
+                    latitude: parseFloat(row.latitude), 
+                    longitude: parseFloat(row.longitude)
+                  };
+                resultats.push(lieu);
             }
         })
         .on('end', () => {
