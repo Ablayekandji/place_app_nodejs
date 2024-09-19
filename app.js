@@ -44,7 +44,7 @@ app.get('/recherche', (req, res) => {
   
           res.json(resultats); // Retourne les résultats triés au format JSON
         } else {
-          res.json({ message: `Aucun lieu trouvé pour '${nomRecherche}'.` });
+          res.status(202).json({ message: `Aucun lieu trouvé pour '${nomRecherche}'.` });
         }
       });
   });
