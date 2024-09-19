@@ -1,38 +1,55 @@
 const fs = require('fs');
 const csv = require('csv-parser');
 const express = require('express');
+const levenshtein = require('fast-levenshtein');
 const app = express();
 
 // Endpoint pour rechercher des lieux
+function removeAccents(str) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
 app.get('/recherche', (req, res) => {
-    const nomRecherche = req.query.name.toLowerCase();
+    const nomRecherche = req.query.name;
     const resultats = [];
+  
+    if (!nomRecherche) {
+      return res.json({ message: "Paramètre 'nom' manquant." });
+    }
+  
+    const nomRechercheSansAccents = removeAccents(nomRecherche.toLowerCase());
 
     fs.createReadStream('dakar_place_v6.csv')
-        .pipe(csv())
-        .on('data', (row) => {
-            if (row.lieu.toLowerCase().startsWith(nomRecherche) || row.lieu.toLowerCase().includes(nomRecherche)) {
-                const lieu = {
-                    lieu: row.lieu,
-                    latitude: parseFloat(row.latitude), 
-                    longitude: parseFloat(row.longitude)
-                  };
-                resultats.push(lieu);
-            }
-        })
-        .on('end', () => {
-            if (resultats.length > 0) {
-                res.json(resultats);
-            } else {
-                res.status(202).json({ message: `Aucun lieu trouvé pour '${nomRecherche}'.` });
-            }
-        })
-        .on('error', (err) => {
-            res.status(500).json({ message: 'Erreur lors de la lecture du fichier.' });
-        });
-});
-
-// Démarrer le serveur sur le port 3000
-app.listen(3000, () => {
-    console.log('Serveur démarré sur le port 3000');
-});
+      .pipe(csv())
+      .on('data', (row) => {
+        // Vérifie si le lieu contient le nom recherché (recherche non sensible à la casse)
+        const lieuSansAccents = removeAccents(row.lieu.toLowerCase());
+        if (lieuSansAccents.includes(nomRechercheSansAccents.toLowerCase())) {
+          // Convertir latitude et longitude en float
+          const lieu = {
+            lieu: row.lieu,
+            latitude: parseFloat(row.latitude), // Conversion en float
+            longitude: parseFloat(row.longitude) // Conversion en float
+          };
+          resultats.push(lieu);
+        }
+      })
+      .on('end', () => {
+        if (resultats.length > 0) {
+          // Trier les résultats en fonction de la similarité avec 'nomRecherche'
+          resultats.sort((a, b) => {
+            const distanceA = levenshtein.get(nomRecherche.toLowerCase(), a.lieu.toLowerCase());
+            const distanceB = levenshtein.get(nomRecherche.toLowerCase(), b.lieu.toLowerCase());
+            return distanceA - distanceB; // Trier par distance croissante
+          });
+  
+          res.json(resultats); // Retourne les résultats triés au format JSON
+        } else {
+          res.json({ message: `Aucun lieu trouvé pour '${nomRecherche}'.` });
+        }
+      });
+  });
+  
+  // Démarrer le serveur
+  app.listen(3000, () => {
+    console.log(`Serveur lancé sur le port ${3000}`);
+  });
