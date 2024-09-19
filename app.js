@@ -10,8 +10,8 @@ function removeAccents(str) {
   }
 app.get('/recherche', (req, res) => {
     const nomRecherche = req.query.name;
-    const resultats = [];
-  
+    //const resultats = [];
+    const resultats = new Map();
     if (!nomRecherche) {
       return res.json({ message: "Paramètre 'nom' manquant." });
     }
@@ -25,28 +25,36 @@ app.get('/recherche', (req, res) => {
         const lieuSansAccents = removeAccents(row.lieu.toLowerCase());
         if (lieuSansAccents.includes(nomRechercheSansAccents.toLowerCase())) {
           // Convertir latitude et longitude en float
-          const lieu = {
-            lieu: row.lieu,
-            latitude: parseFloat(row.latitude), // Conversion en float
-            longitude: parseFloat(row.longitude) // Conversion en float
-          };
-          resultats.push(lieu);
+          const lieuKey = lieuSansAccents;
+          if (!resultats.has(lieuKey)) {
+            // Convertir latitude et longitude en float
+            const lieu = {
+              lieu: row.lieu,
+              latitude: parseFloat(row.latitude), // Conversion en float
+              longitude: parseFloat(row.longitude) // Conversion en float
+            };
+            resultats.set(lieuKey, lieu); // Ajouter le lieu unique à la Map
+          }
         }
       })
       .on('end', () => {
-        if (resultats.length > 0) {
-          // Trier les résultats en fonction de la similarité avec 'nomRecherche'
-          resultats.sort((a, b) => {
-            const distanceA = levenshtein.get(nomRecherche.toLowerCase(), a.lieu.toLowerCase());
-            const distanceB = levenshtein.get(nomRecherche.toLowerCase(), b.lieu.toLowerCase());
-            return distanceA - distanceB; // Trier par distance croissante
-          });
-  
-          res.json(resultats); // Retourne les résultats triés au format JSON
-        } else {
+        const lieuxUniques = Array.from(resultats.values());
+        if (lieuxUniques.length > 0) {
+            // Trier les résultats en fonction de la similarité avec 'nomRecherche'
+            lieuxUniques.sort((a, b) => {
+              const distanceA = levenshtein.get(nomRechercheSansAccents, removeAccents(a.lieu.toLowerCase()));
+              const distanceB = levenshtein.get(nomRechercheSansAccents, removeAccents(b.lieu.toLowerCase()));
+              return distanceA - distanceB; // Trier par distance croissante
+            });
+    
+            res.json(lieuxUniques); // Retourne les résultats uniques triés au format JSON
+          } else {
           res.status(202).json({ message: `Aucun lieu trouvé pour '${nomRecherche}'.` });
         }
-      });
+      })
+      .on('error', (err) => {
+        res.status(500).json({ message: 'Erreur lors de la lecture du fichier.' });
+    });
   });
   
   // Démarrer le serveur
