@@ -8,7 +8,7 @@ app.get('/recherche', (req, res) => {
     const nomRecherche = req.query.name.toLowerCase();
     const resultats = [];
 
-    fs.createReadStream('places_with_not_null_values.csv')
+    fs.createReadStream('dakar_place_v6.csv')
         .pipe(csv())
         .on('data', (row) => {
             if (row.lieu.toLowerCase().startsWith(nomRecherche) || row.lieu.toLowerCase().includes(nomRecherche)) {
