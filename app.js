@@ -13,12 +13,12 @@ app.get('/recherche', (req, res) => {
     //const resultats = [];
     const resultats = new Map();
     if (!nomRecherche) {
-      return res.json({ message: "Paramètre 'nom' manquant." });
+      return res.status(202).json({ message: "Paramètre 'nom' manquant." });
     }
   
     const nomRechercheSansAccents = removeAccents(nomRecherche.toLowerCase());
 
-    fs.createReadStream('dakar_place_v6.csv')
+    fs.createReadStream('region_de_dakar_places_v7_last.csv')
       .pipe(csv())
       .on('data', (row) => {
         // Vérifie si le lieu contient le nom recherché (recherche non sensible à la casse)
